@@ -1,24 +1,34 @@
-import './style.css'
-import typescriptLogo from './typescript.svg'
-import viteLogo from '/vite.svg'
-import { setupCounter } from './counter.ts'
+import { currentFilter, currentSearch, setupFilters } from "./lib/filters";
+import { loadMapping } from "./lib/mapping";
+import { loadUnlocked, saveUnlocked } from "./lib/storage";
+import { renderVirtualCollection } from "./lib/virtualScroller";
 
-document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
-  <div>
-    <a href="https://vite.dev" target="_blank">
-      <img src="${viteLogo}" class="logo" alt="Vite logo" />
-    </a>
-    <a href="https://www.typescriptlang.org/" target="_blank">
-      <img src="${typescriptLogo}" class="logo vanilla" alt="TypeScript logo" />
-    </a>
-    <h1>Vite + TypeScript</h1>
-    <div class="card">
-      <button id="counter" type="button"></button>
-    </div>
-    <p class="read-the-docs">
-      Click on the Vite and TypeScript logos to learn more
-    </p>
-  </div>
-`
+let unlockedIds = loadUnlocked();
 
-setupCounter(document.querySelector<HTMLButtonElement>('#counter')!)
+const fileInput = document.getElementById("fileInput") as HTMLInputElement;
+const statusEl = document.getElementById("status") as HTMLParagraphElement;
+
+fileInput.addEventListener("change", async () => {
+  const file = fileInput.files?.[0];
+  if (!file) return;
+
+  try {
+    const json = JSON.parse(await file.text());
+    unlockedIds = json;
+    saveUnlocked(json);
+    statusEl.textContent = "File loaded!";
+    run();
+  } catch {
+    statusEl.textContent = "Invalid file.";
+  }
+});
+
+setupFilters(() => run());
+
+async function run() {
+  const mapping = await loadMapping();
+  renderVirtualCollection(mapping, unlockedIds, currentFilter.value, currentSearch.value);
+}
+
+// initial load:
+run();

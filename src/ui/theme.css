@@ -1,0 +1,22 @@
+body {
+  background: #000;
+  color: #fff;
+  font-family: sans-serif;
+}
+
+.back {
+  color: #aaa;
+}
+
+.details-icon {
+  width: 64px;
+  image-rendering: pixelated;
+}
+
+.wiki-icon {
+  width: 24px;
+}
+
+#loading {
+  display: none;
+}

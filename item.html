@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Item Details</title>
+
+  <link rel="stylesheet" href="/src/ui/theme.css" />
+  <style>
+    .details-container {
+      margin-top: 20px;
+    }
+
+    .drop-section {
+      margin-top: 20px;
+      padding: 10px;
+      background: #111;
+      border: 1px solid #333;
+      border-radius: 6px;
+    }
+
+    .drop-section h2 {
+      margin-top: 0;
+    }
+  </style>
+</head>
+
+<body>
+
+  <a href="index.html" class="back">← Back</a>
+
+  <div class="details-container">
+    <h1 id="itemName"></h1>
+    <img id="itemIcon" class="details-icon" />
+
+    <div id="wikiLink" style="margin-top: 10px;"></div>
+  </div>
+
+  <div class="drop-section">
+    <h2>Where to get it</h2>
+
+    <!-- This will be filled by renderDropSources() -->
+    <div id="sourceInfo">Loading drop sources…</div>
+  </div>
+
+  <script type="module" src="/src/itemPage.ts"></script>
+
+</body>
+</html>

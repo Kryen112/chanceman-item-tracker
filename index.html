@@ -1,13 +1,41 @@
-<body style="
-  margin:0;
-  background:#000;
-  color:#fff;
-  font-family:sans-serif;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  height:100vh;
-">
-  Hello world
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>ChanceMan Item Tracker</title>
+
+  <link rel="stylesheet" href="/src/ui/theme.css" />
+  <link rel="stylesheet" href="/src/ui/layout.css" />
+</head>
+
+<body>
+
+  <header>
+    <h1>ChanceMan Item Tracker</h1>
+
+    <p>
+      Upload your <code>chanceman_unlocked.json</code> file.<br>
+      Location:<br>
+      <code>C:\Users\[user]\.runelite\chanceman\[osrs-account]\chanceman_unlocked.json</code>
+    </p>
+
+    <input type="file" id="fileInput" accept="application/json" />
+    <p id="status"></p>
+
+    <div id="controls">
+      <input id="search" type="text" placeholder="Search items..." />
+
+      <button data-filter="all">All</button>
+      <button data-filter="owned">Owned</button>
+      <button data-filter="missing">Missing</button>
+    </div>
+
+    <div id="loading">Loading items...</div>
+  </header>
+
+  <div id="collection"></div>
+
   <script type="module" src="/src/main.ts"></script>
+
 </body>
+</html>
