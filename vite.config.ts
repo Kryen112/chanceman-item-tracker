@@ -69,131 +69,73 @@ function parseDropRateNumeric(raw?: string): number | null {
 }
 
 // parse item wiki page and extract relevant source tables
-function parseItemPage(html: string, itemName: string): { sources: DropSource[]; itemTitle: string } {
+function parseItemPage(html: string, itemName: string): { itemTitle: string; sources: DropSource[] } {
   const $ = cheerio.load(html);
+
   const itemTitle = $("h1#firstHeading").text().trim() || itemName;
+
   const sources: DropSource[] = [];
 
-  // Helper: build wiki link for a source row (when a link exists in the row)
-  function extractLinkFromCell(cell: cheerio.Cheerio<any>): string | undefined {
-    const a = cell.find("a").first();
-    if (a && a.attr("href")) {
-      const href = a.attr("href")!;
-      if (href.startsWith("/")) return "https://oldschool.runescape.wiki" + href;
-      if (href.startsWith("http")) return href;
-    }
-    return undefined;
-  }
+  // Helper: first link inside a table cell
+  const getLink = (cell: cheerio.Cheerio<any>) => {
+    const href = cell.find("a").attr("href");
+    if (!href) return undefined;
+    if (href.startsWith("/")) return "https://oldschool.runescape.wiki" + href;
+    return href;
+  };
 
-  // 1) Standard "Drop sources" or "Sources" tables (class item-drops or wikitable)
-  // We will search for headings that likely indicate source tables and parse the nearest table(s).
-  const sectionSelectors = [
-    "h2:has(span#Drop_sources)",
-    "h2:has(span#Sources)",
-    "h2:has(span#Item_sources)",
-    "h2:has(span#Obtained_from)",
-    "h2:has(span#Sources_and_locations)",
-    "h2" // fallback: parse all h2 and examine tables under them
-  ];
+  // ------------------------------------------------------
+  // 1. MONSTER / CHEST / CONTAINER / MINIGAME DROP SOURCES
+  // ------------------------------------------------------
+  $("table.item-drops").each((_, table) => {
+    const rows = $(table).find("tbody tr");
+    rows.each((_, row) => {
+      const tds = $(row).find("td");
+      if (tds.length < 4) return;
 
-  // Utility to parse a generic "sources" table row into DropSource
-  function parseSourceRow($row: cheerio.Cheerio<any>) : DropSource | null {
-    // Many source tables have multiple columns: Source | Location/Method | Rate | Notes/Reqs
-    const cols = $row.find("td, th");
-    if (cols.length === 0) return null;
+      const sourceName = $(tds[0]).text().trim();
+      if (!sourceName || sourceName === "Nothing") return;
 
-    // Try to heuristically find source name, rate, quantity, requirements/notes
-    const colTexts = cols.map((i, el) => $(el).text().trim()).get();
-    // Identify probable sourceName: often first column
-    const sourceName = (colTexts[0] || "").replace(/\s+/g, " ").trim();
-    if (!sourceName) return null;
+      const qty = $(tds[1]).text().trim() || undefined;
+      const rarity = $(tds[2]).text().trim() || undefined;
+      const notes = $(tds[3]).text().trim() || undefined;
 
-    // find rate: look for a cell that looks like a rate (contains '/', '1/', '%', 'chance', 'rare', 'common', 'uncommon')
-    let rawRate: string | undefined;
-    for (let i = 0; i < colTexts.length; i++) {
-      const txt = colTexts[i].toLowerCase();
-      if (txt.includes("/") || txt.includes("%") || /chance|chance to|rare|common|uncommon|1 in|1\/|drop/.test(txt)) {
-        rawRate = colTexts[i];
-        break;
-      }
-    }
+      const dropRateNumeric = parseDropRateNumeric(rarity);
 
-    // quantity: sometimes in same cell as rate or in a dedicated column; we try simple heuristics
-    let quantity: string | undefined;
-    const qMatch = (colTexts.join(" ")).match(/x?\s?(\d+–\d+|\d+)\b/);
-    if (qMatch) quantity = qMatch[1];
-
-    // requirements/notes: last column(s)
-    const notes = colTexts.slice(1).join(" | ").trim() || undefined;
-
-    // Determine type heuristically by sourceName or table context
-    let type = "other";
-    const s = sourceName.toLowerCase();
-    if (/pickpocket|pickpocketing|stall|thieving/.test(s)) type = "thieving";
-    else if (/barrows|minigame|gauntlet|raids|treasure trails|treasure trail|clue/.test(s)) type = "minigame";
-    else if (/fish|fishing|harpoon|net|fishing spot|mining|mine|ore|woodcut|log|chop|farm|skilling/.test(s)) type = "skilling";
-    else if (/chest|cupboard|crate|drawer|shelf|coffin|box|altar|trough|chest|container/i.test(sourceName)) type = "container";
-    else if (/npc|monster|boss|guard|shade|giant|dragon|rabbit|rat|goblin|man|woman|demon|zombie|skeleton/i.test(sourceName)) type = "monster";
-    else if (/clue|casket|treasure trail/i.test(notes || "")) type = "clue";
-
-    const parsedNumeric = parseDropRateNumeric(rawRate);
-    const link = extractLinkFromCell(cols.eq(0));
-    return {
-      sourceName,
-      type,
-      dropRateRaw: rawRate,
-      dropRateNumeric: parsedNumeric,
-      quantity,
-      requirements: undefined,
-      notes: notes || undefined,
-      wikiUrl: link
-    };
-  }
-
-  // Iterate h2/h3 sections and parse tables present under them
-  $("h2, h3").each((_, h) => {
-    const heading = $(h).text().trim();
-    // examine subsequent sibling nodes until next heading at same level
-    let el = $(h).next();
-    let collectedTables: any = [];
-    while (el.length && el[0].tagName !== "h2" && el[0].tagName !== "h3") {
-      if (el[0].tagName === "table" || el.find("table").length > 0) {
-        // push tables directly or inner tables
-        if (el[0].tagName === "table") collectedTables.push(el[0]);
-        else el.find("table").each((i, t) => collectedTables.push(t));
-      }
-      el = el.next();
-    }
-
-    for (const tEl of collectedTables) {
-      const $t = $(tEl);
-      // only parse tables that look like source/drop tables
-      const tblClass = $t.attr("class") || "";
-      if (!/item-drops|wikitable|infobox|itemsources|item-drop-table/i.test(tblClass) && $t.find("tbody tr").length === 0) continue;
-
-      $t.find("tbody tr").each((i, row) => {
-        const ds = parseSourceRow($(row));
-        if (ds) {
-          // attach type hint using heading if available
-          if (/Drop sources|Drops|Monster drops/i.test(heading)) ds.type = "monster";
-          if (/Thieving|Pickpocketing|Stalls/i.test(heading)) ds.type = "thieving";
-          if (/Clue|Treasure Trails|Casket/i.test(heading)) ds.type = "clue";
-          if (/Chest|Cupboard|Drawer|Container/i.test(heading)) ds.type = "container";
-          sources.push(ds);
-        }
+      sources.push({
+        sourceName,
+        type: "monster",     // Always monster-like for item-drops tables
+        quantity: qty,
+        dropRateRaw: rarity,
+        dropRateNumeric,
+        notes,
+        wikiUrl: getLink($(tds[0])),
       });
-    }
-  });
-
-  // fallback: look for specific item-drops tables anywhere on page
-  $("table.item-drops, table.wikitable").each((_, t) => {
-    $(t).find("tbody tr").each((i, row) => {
-      const ds = parseSourceRow($(row));
-      if (ds) sources.push(ds);
     });
   });
 
-  return { sources, itemTitle };
+  // -----------------------
+  // 2. SHOP TABLES
+  // -----------------------
+  $("table.store-locations-list").each((_, table) => {
+    const rows = $(table).find("tbody tr");
+    rows.each((_, row) => {
+      const tds = $(row).find("td");
+      if (tds.length < 2) return;
+
+      const shopName = $(tds[0]).text().trim();
+      const stock = $(tds[1]).text().trim() || undefined;
+
+      sources.push({
+        sourceName: shopName,
+        type: "shop",
+        quantity: stock,
+        wikiUrl: getLink($(tds[0])),
+      });
+    });
+  });
+
+  return { itemTitle, sources };
 }
 
 // attempt to load local ChanceMan drop files from public/chance_drops
