@@ -1,12 +1,11 @@
 .item-tile {
   width: 60px;
   height: 70px;
-  background: #1a1a1a;
-  border: 1px solid #333;
-  border-radius: 4px;
+  background: #D8CCB4;
+  border: 1px solid #8E8068;
   padding: 3px;
-  color: white;
-  font-size: 9px;
+  color: #9B6039;
+  font-size: 10px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -15,19 +14,22 @@
 }
 
 .tile-icon {
-  width: 28px;
-  height: 28px;
   image-rendering: pixelated;
 }
 
 .tile-name {
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  overflow: hidden;
   width: 100%;
 }
 
 .wiki-button {
-  width: 12px;
+  float: right;
+  width: 20px;
   cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  padding: 4px;
+}
+
+.wiki-button:hover {
+  transform: scale(1.10);
+  box-shadow: 0 0 0 2px #8E8068;
 }

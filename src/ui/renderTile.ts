@@ -2,13 +2,14 @@ export function getIconUrl(icon: string) {
   return `https://oldschool.runescape.wiki/images/${icon.replace(/ /g, "_")}`;
 }
 
-export function createTile(item: any, owned: boolean) {
+export function createTile(item: any, rolled: boolean) {
   const tile = document.createElement("div");
   tile.className = "item-tile";
-  tile.style.opacity = owned ? "1" : "0.25";
+  tile.style.opacity = rolled ? "1" : "0.25";
 
   const img = document.createElement("img");
-  img.src = getIconUrl(item.icon);
+  img.dataset.src = getIconUrl(item.icon);  // lazy load URL only
+  img.src = "";
   img.className = "tile-icon";
 
   const wiki = document.createElement("img");

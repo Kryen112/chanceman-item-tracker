@@ -1,4 +1,4 @@
-export const currentFilter = { value: "all" as "all" | "owned" | "missing" };
+export const currentFilter = { value: "all" as "all" | "rolled" | "missing" };
 export const currentSearch = { value: "" };
 
 export function setupFilters(callback: () => void) {
