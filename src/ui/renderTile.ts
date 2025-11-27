@@ -5,7 +5,7 @@ export function getIconUrl(icon: string) {
 export function createTile(item: any, rolled: boolean) {
   const tile = document.createElement("div");
   tile.className = "item-tile";
-  tile.style.opacity = rolled ? "1" : "0.25";
+  tile.style.opacity = rolled ? "1" : "0.55";
 
   const img = document.createElement("img");
   img.dataset.src = getIconUrl(item.icon);  // lazy load URL only
